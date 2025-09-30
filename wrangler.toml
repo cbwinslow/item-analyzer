@@ -13,6 +13,9 @@ TWILIO_TOKEN = ""
 TWILIO_FROM = ""
 N8N_WEBHOOK_URL = ""
 OPENSEARCH_NODE = "http://localhost:9200"
+RABBITMQ_URL = "http://localhost:15672"
+RABBITMQ_USER = "guest"
+RABBITMQ_PASS = "guest"
 # Add other API keys
 
 # Supabase

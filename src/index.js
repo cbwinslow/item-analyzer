@@ -103,33 +103,22 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/analyze' && request.method === 'POST') {
-      // ... existing code
-    } else if (url.pathname === '/api/post' && request.method === 'POST') {
-      const formData = await request.formData();
-      const platform = formData.get('platform');
-      const itemId = formData.get('itemId');
-      // Placeholder for posting
-      const result = await postToMarketplace(platform, itemId, supabase);
-      return new Response(result, { headers: { 'content-type': 'text/plain' } });
-    } else if (url.pathname === '/api/subscribe' && request.method === 'POST') {
-      const { email, priceId } = await request.json();
-      const subscription = await createSubscription(email, priceId, env);
-      return new Response(JSON.stringify(subscription), {
-        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
-    } else if (url.pathname === '/api/auth/signup' && request.method === 'POST') {
-      const { email, password } = await request.json();
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      return new Response(JSON.stringify({ data, error }), {
-        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
-    } else if (url.pathname === '/api/auth/login' && request.method === 'POST') {
-      const { email, password } = await request.json();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      return new Response(JSON.stringify({ data, error }), {
-        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
-    }
+      try {
+        // Handle form submission
+        const images = formData.getAll('images');
+        const description = formData.get('description');
+        const itemUrl = formData.get('url');
+        const email = formData.get('email');
+        const phone = formData.get('phone');
+        const format = formData.get('format') || 'text';
+
+        // Upload images to R2
+        const imageUrls = [];
+        for (const image of images) {
+          const key = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${image.name.split('.').pop()}`;
+          await env.IMAGES.put(key, image);
+          imageUrls.push(`https://item-images.your-domain.com/${key}`); // Replace with actual domain
+        }
       // Handle form submission
       const formData = await request.formData();
       const images = formData.getAll('images');
@@ -226,6 +215,26 @@ export default {
         });
       }
 
+      // Send to RabbitMQ queue
+      if (env.RABBITMQ_URL) {
+        const auth = btoa(`${env.RABBITMQ_USER}:${env.RABBITMQ_PASS}`);
+        await fetch(`${env.RABBITMQ_URL}/api/exchanges/%2f/amq.default/publish`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            properties: {},
+            routing_key: 'item_analysis',
+            payload: JSON.stringify({ id: data.id, report }),
+            payload_encoding: 'string'
+          })
+        });
+      }
+
+      console.log('Analysis completed for item:', description);
+
       return new Response(responseBody, {
         headers: {
           'content-type': contentType,
@@ -234,6 +243,10 @@ export default {
           'Access-Control-Allow-Headers': 'Content-Type'
         }
       });
+      } catch (error) {
+        console.error('Error in analyze:', error);
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
     }
 
     // Serve static files

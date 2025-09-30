@@ -8,11 +8,27 @@
     body { font-family: Arial, sans-serif; margin: 20px; }
     form { max-width: 600px; margin: auto; }
     input, textarea, button { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+    .auth { display: none; }
+    .logged-in .auth { display: block; }
+    .logged-in .public { display: none; }
   </style>
 </head>
 <body>
   <h1>Item Analyzer</h1>
-  <form id="itemForm" enctype="multipart/form-data">
+  <div class="auth">
+    <button id="logout">Logout</button>
+    <h2>Your Items</h2>
+    <div id="items"></div>
+  </div>
+  <div class="public">
+    <div id="authForm">
+      <input type="email" id="authEmail" placeholder="Email">
+      <input type="password" id="authPassword" placeholder="Password">
+      <button id="signup">Signup</button>
+      <button id="login">Login</button>
+    </div>
+  </div>
+  <form id="itemForm" enctype="multipart/form-data" class="public">
     <label for="images">Upload Images:</label>
     <input type="file" id="images" name="images" multiple accept="image/*">
 
@@ -41,6 +57,60 @@
   <div id="result"></div>
 
   <script>
+    let token = localStorage.getItem('token');
+    if (token) {
+      document.body.classList.add('logged-in');
+      loadItems();
+    }
+
+    document.getElementById('signup').addEventListener('click', async () => {
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (data.data.user) {
+        token = data.data.session.access_token;
+        localStorage.setItem('token', token);
+        document.body.classList.add('logged-in');
+        loadItems();
+      }
+    });
+
+    document.getElementById('login').addEventListener('click', async () => {
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (data.data.session) {
+        token = data.data.session.access_token;
+        localStorage.setItem('token', token);
+        document.body.classList.add('logged-in');
+        loadItems();
+      }
+    });
+
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      token = null;
+      document.body.classList.remove('logged-in');
+    });
+
+    async function loadItems() {
+      const response = await fetch('/api/items', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const items = await response.json();
+      document.getElementById('items').innerHTML = items.map(item => `<div>${item.description}: ${item.report}</div>`).join('');
+    }
+
     document.getElementById('itemForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
@@ -50,6 +120,7 @@
       });
       const result = await response.text();
       document.getElementById('result').innerText = result;
+      if (token) loadItems();
     });
   </script>
 </body>
