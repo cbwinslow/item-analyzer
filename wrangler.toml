@@ -31,3 +31,7 @@ binding = "AI"
 # Observability
 [observability]
 enabled = true
+
+# Security
+[security]
+enabled = true

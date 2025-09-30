@@ -75,6 +75,22 @@ async function postToMarketplace(platform, itemId, env) {
   }
   return 'Unsupported platform';
 }
+
+// Helper function for creating Stripe subscription
+async function createSubscription(email, priceId, env) {
+  const stripe = new Stripe(env.STRIPE_SECRET);
+  const customer = await stripe.customers.create({ email });
+  const subscription = await stripe.subscriptions.create({
+    customer: customer.id,
+    items: [{ price: priceId }],
+    payment_behavior: 'default_incomplete',
+    expand: ['latest_invoice.payment_intent']
+  });
+  return {
+    subscriptionId: subscription.id,
+    clientSecret: subscription.latest_invoice.payment_intent.client_secret
+  };
+}
 }
 
 // Cloudflare Worker for Item Analyzer
@@ -91,6 +107,12 @@ export default {
       // Placeholder for posting
       const result = await postToMarketplace(platform, itemId, env);
       return new Response(result, { headers: { 'content-type': 'text/plain' } });
+    } else if (url.pathname === '/api/subscribe' && request.method === 'POST') {
+      const { email, priceId } = await request.json();
+      const subscription = await createSubscription(email, priceId, env);
+      return new Response(JSON.stringify(subscription), {
+        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
     }
       // Handle form submission
       const formData = await request.formData();
@@ -160,7 +182,14 @@ export default {
         await sendSMS(phone, report.substring(0, 160), env); // Truncate for SMS
       }
 
-      return new Response(responseBody, { headers: { 'content-type': contentType } });
+      return new Response(responseBody, {
+        headers: {
+          'content-type': contentType,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
     }
 
     // Serve static files
@@ -169,6 +198,15 @@ export default {
       return new Response(html, { headers: { 'content-type': 'text/html' } });
     }
 
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+    }
     return new Response('Not Found', { status: 404 });
   },
 };

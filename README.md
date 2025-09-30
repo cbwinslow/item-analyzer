@@ -40,7 +40,7 @@ A Cloudflare-based platform for analyzing items for sale, conducting marketplace
 
 ## Compliance
 
-Adheres to GDPR, CCPA for data protection.
+Adheres to GDPR, CCPA for data protection. User data is encrypted, stored securely in Cloudflare D1/R2. No data shared without consent. Users can request data deletion.
 
 ## Development Notes
 
