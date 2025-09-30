@@ -33,6 +33,21 @@ A Cloudflare-based platform for analyzing items for sale, conducting marketplace
 6. Run locally: `npm run dev`
 7. Deploy: `npm run deploy`
 
+## Test Environment
+
+- Run tests: `npm test`
+- For full test env: `docker-compose -f docker-compose.test.yml up -d` (if created)
+- Local AI: Access LocalAI at http://localhost:8080
+- N8N workflows: http://localhost:5678
+- Monitoring: Prometheus http://localhost:9090, Grafana http://localhost:3000
+
+## Integrations
+
+- N8N: Triggers workflow after analysis
+- Supabase Auth: Signup/Login APIs
+- OpenWebUI: For AI chat interface
+- Ollama: Local LLM
+
 ## API Keys Required
 
 - CLOUDFLARE_API_TOKEN

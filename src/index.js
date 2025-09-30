@@ -1,6 +1,7 @@
 import { Ai } from '@cloudflare/ai';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { Client } from '@opensearch-project/opensearch';
 
 // Helper function for marketplace research
 async function researchItem(description, url, env) {
@@ -98,6 +99,7 @@ async function createSubscription(email, priceId, env) {
 export default {
   async fetch(request, env, ctx) {
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+    const opensearch = new Client({ node: env.OPENSEARCH_NODE });
     const url = new URL(request.url);
 
     if (url.pathname === '/api/analyze' && request.method === 'POST') {
@@ -113,6 +115,18 @@ export default {
       const { email, priceId } = await request.json();
       const subscription = await createSubscription(email, priceId, env);
       return new Response(JSON.stringify(subscription), {
+        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    } else if (url.pathname === '/api/auth/signup' && request.method === 'POST') {
+      const { email, password } = await request.json();
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      return new Response(JSON.stringify({ data, error }), {
+        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    } else if (url.pathname === '/api/auth/login' && request.method === 'POST') {
+      const { email, password } = await request.json();
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      return new Response(JSON.stringify({ data, error }), {
         headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
     }
@@ -151,15 +165,26 @@ export default {
       const report = reportResponse.response || 'Report generation failed';
 
       // Store in Supabase
-      const { error } = await supabase.from('items').insert({
+      const { data, error } = await supabase.from('items').insert({
         description,
         url: itemUrl,
         email,
         phone,
         image_urls: imageUrls.join(','),
         report
-      });
+      }).select().single();
       if (error) throw error;
+
+      // Index in OpenSearch
+      await opensearch.index({
+        index: 'items',
+        id: data.id.toString(),
+        body: {
+          description,
+          url: itemUrl,
+          report
+        }
+      });
 
       // Placeholder for payment: assume paid or add payment check
       // const stripe = new Stripe(env.STRIPE_SECRET);
@@ -190,6 +215,15 @@ export default {
       // Send SMS if provided
       if (phone) {
         await sendSMS(phone, report.substring(0, 160), env); // Truncate for SMS
+      }
+
+      // Trigger N8N workflow
+      if (env.N8N_WEBHOOK_URL) {
+        await fetch(env.N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description, itemUrl, report })
+        });
       }
 
       return new Response(responseBody, {
