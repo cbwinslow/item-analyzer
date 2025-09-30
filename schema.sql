@@ -1,0 +1,8 @@
+CREATE TABLE items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  description TEXT,
+  url TEXT,
+  email TEXT,
+  report TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
