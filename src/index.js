@@ -39,6 +39,42 @@ async function sendEmail(to, content, env) {
   });
   if (!response.ok) throw new Error('Email send failed');
 }
+
+// Helper function for sending SMS
+async function sendSMS(to, content, env) {
+  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_SID}/Messages.json`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`${env.TWILIO_SID}:${env.TWILIO_TOKEN}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      To: to,
+      From: env.TWILIO_FROM,
+      Body: content
+    })
+  });
+  if (!response.ok) throw new Error('SMS send failed');
+}
+
+// Helper function for posting to marketplace
+async function postToMarketplace(platform, itemId, env) {
+  // Get item from DB
+  const item = await env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(itemId).first();
+  if (!item) return 'Item not found';
+
+  if (platform === 'ebay') {
+    // Placeholder for eBay posting
+    return 'Posted to eBay: ' + item.description;
+  } else if (platform === 'facebook') {
+    // Placeholder
+    return 'Posted to Facebook Marketplace: ' + item.description;
+  } else if (platform === 'mercari') {
+    // Placeholder
+    return 'Posted to Mercari: ' + item.description;
+  }
+  return 'Unsupported platform';
+}
 }
 
 // Cloudflare Worker for Item Analyzer
@@ -47,13 +83,31 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/analyze' && request.method === 'POST') {
+      // ... existing code
+    } else if (url.pathname === '/api/post' && request.method === 'POST') {
+      const formData = await request.formData();
+      const platform = formData.get('platform');
+      const itemId = formData.get('itemId');
+      // Placeholder for posting
+      const result = await postToMarketplace(platform, itemId, env);
+      return new Response(result, { headers: { 'content-type': 'text/plain' } });
+    }
       // Handle form submission
       const formData = await request.formData();
       const images = formData.getAll('images');
       const description = formData.get('description');
       const itemUrl = formData.get('url');
       const email = formData.get('email');
+      const phone = formData.get('phone');
       const format = formData.get('format') || 'text';
+
+      // Upload images to R2
+      const imageUrls = [];
+      for (const image of images) {
+        const key = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${image.name.split('.').pop()}`;
+        await env.IMAGES.put(key, image);
+        imageUrls.push(`https://item-images.your-domain.com/${key}`); // Replace with actual domain
+      }
 
       // AI Analysis
       const ai = new Ai(env.AI);
@@ -73,7 +127,7 @@ export default {
       const report = reportResponse.response || 'Report generation failed';
 
       // Store in D1
-      await env.DB.prepare('INSERT INTO items (description, url, email, report) VALUES (?, ?, ?, ?)').bind(description, itemUrl, email, report).run();
+      await env.DB.prepare('INSERT INTO items (description, url, email, phone, image_urls, report) VALUES (?, ?, ?, ?, ?, ?)').bind(description, itemUrl, email, phone, imageUrls.join(','), report).run();
 
       // Placeholder for payment: assume paid or add payment check
       // const stripe = new Stripe(env.STRIPE_SECRET);
@@ -99,6 +153,11 @@ export default {
       // Send email if provided
       if (email) {
         await sendEmail(email, report, env);
+      }
+
+      // Send SMS if provided
+      if (phone) {
+        await sendSMS(phone, report.substring(0, 160), env); // Truncate for SMS
       }
 
       return new Response(responseBody, { headers: { 'content-type': contentType } });

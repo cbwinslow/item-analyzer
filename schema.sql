@@ -3,6 +3,8 @@ CREATE TABLE items (
   description TEXT,
   url TEXT,
   email TEXT,
+  phone TEXT,
+  image_urls TEXT,
   report TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

@@ -8,6 +8,9 @@ EBAY_TOKEN = ""
 FACEBOOK_APP_ID = ""
 MERCARI_API_KEY = ""
 SENDGRID_API_KEY = ""
+TWILIO_SID = ""
+TWILIO_TOKEN = ""
+TWILIO_FROM = ""
 # Add other API keys
 
 # For D1
@@ -15,6 +18,11 @@ SENDGRID_API_KEY = ""
 binding = "DB"
 database_name = "item_analyzer_db"
 database_id = ""
+
+# For R2
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "item-images"
 
 # AI Gateway
 [ai]
