@@ -5,6 +5,10 @@ import { Client } from '@opensearch-project/opensearch';
 
 // Helper function for marketplace research
 async function researchItem(description, url, env) {
+  const cacheKey = `research:${description}`;
+  let cached = await env.CACHE.get(cacheKey);
+  if (cached) return cached;
+
   try {
     // eBay API
     const ebayResponse = await fetch(`https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(description)}&limit=10`, {
@@ -19,9 +23,12 @@ async function researchItem(description, url, env) {
     // Mercari (placeholder)
     const mercariInfo = 'Mercari: Integrate API for data.';
 
-    return `${ebayInfo}. ${fbInfo}. ${mercariInfo}`;
+    const result = `${ebayInfo}. ${fbInfo}. ${mercariInfo}`;
+    await env.CACHE.put(cacheKey, result, { expirationTtl: 3600 }); // Cache for 1 hour
+    return result;
   } catch (error) {
-  return 'Market research failed: ' + error.message;
+    return 'Market research failed: ' + error.message;
+  }
 }
 
 // Helper function for sending email
@@ -247,6 +254,10 @@ export default {
         console.error('Error in analyze:', error);
         return new Response('Error: ' + error.message, { status: 500 });
       }
+    } else if (url.pathname === '/api/health' && request.method === 'GET') {
+      return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
+        headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
     }
 
     // Serve static files

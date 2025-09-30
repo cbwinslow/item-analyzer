@@ -18,6 +18,11 @@ RABBITMQ_USER = "guest"
 RABBITMQ_PASS = "guest"
 # Add other API keys
 
+# For KV
+[[kv_namespaces]]
+binding = "CACHE"
+id = ""
+
 # Supabase
 SUPABASE_URL = ""
 SUPABASE_ANON_KEY = ""

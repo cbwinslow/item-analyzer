@@ -47,6 +47,22 @@ A Cloudflare-based platform for analyzing items for sale, conducting marketplace
 - Supabase Auth: Signup/Login APIs
 - OpenWebUI: For AI chat interface
 - Ollama: Local LLM
+- RabbitMQ: For message queuing
+- OpenSearch: For indexing and search
+
+## Deployment
+
+1. Set up Cloudflare account and install Wrangler.
+2. Create Supabase project and run schema.sql.
+3. Set up R2 bucket, KV namespace, D1 database via Wrangler.
+4. Configure API keys in wrangler.toml.
+5. For additional services: `docker-compose up -d`
+6. Deploy: `wrangler deploy`
+7. Access at your Cloudflare domain.
+
+## Health Check
+
+GET /api/health
 
 ## API Keys Required
 
