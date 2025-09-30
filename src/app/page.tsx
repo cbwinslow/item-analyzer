@@ -12,6 +12,8 @@ export default function Home() {
   const [report, setReport] = useState(null);
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,6 +46,12 @@ export default function Home() {
     if (user) loadItems();
   }, [user]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const previews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -53,6 +61,7 @@ export default function Home() {
     });
     const data = await response.json();
     setReport(data.report);
+    if (user) loadItems();
   };
 
   const requestNotificationPermission = () => {
@@ -64,6 +73,32 @@ export default function Home() {
       });
     }
   };
+
+  const startVoiceInput = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new (window as any).webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        (document.getElementById('description') as HTMLInputElement).value = transcript;
+      };
+      recognition.start();
+    } else {
+      alert('Voice input not supported');
+    }
+  };
+
+  const loadRecommendations = async () => {
+    // Placeholder: fetch from audit logs
+    const recs = ['Similar item 1', 'Similar item 2'];
+    setRecommendations(recs);
+  };
+
+  useEffect(() => {
+    if (user) loadRecommendations();
+  }, [user]);
 
   const data = {
     labels: ['eBay', 'Facebook', 'Mercari'],
@@ -84,9 +119,15 @@ export default function Home() {
         <>
           <button onClick={() => { localStorage.removeItem('token'); setUser(null); }} className="w-full p-2 bg-red-500 text-white rounded mb-4">Logout</button>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input name="images" type="file" multiple className="w-full p-2 border rounded" />
-            <input name="description" type="text" placeholder="Description" className="w-full p-2 border rounded" />
-            <input name="url" type="url" placeholder="Item URL" className="w-full p-2 border rounded" />
+            <input name="images" type="file" multiple className="w-full p-2 border rounded" onChange={handleImageChange} />
+        <div className="flex flex-wrap mt-2">
+          {imagePreviews.map((src, i) => <img key={i} src={src} alt="preview" className="w-20 h-20 object-cover m-1" />)}
+        </div>
+        <div className="flex">
+          <input name="description" id="description" type="text" placeholder="Description" className="flex-1 p-2 border rounded" />
+          <button type="button" onClick={startVoiceInput} className="ml-2 p-2 bg-blue-500 text-white rounded">🎤</button>
+        </div>
+        <input name="url" type="url" placeholder="Item URL" className="w-full p-2 border rounded" />
             <input name="email" type="email" placeholder="Email" className="w-full p-2 border rounded" />
             <input name="phone" type="tel" placeholder="Phone" className="w-full p-2 border rounded" />
             <select name="format" className="w-full p-2 border rounded">
@@ -105,6 +146,10 @@ export default function Home() {
           <div className="mt-4">
             <h2>Your Items</h2>
             {items.map((item: any) => <div key={item.id}>{item.description}</div>)}
+          </div>
+          <div className="mt-4">
+            <h2>Recommendations</h2>
+            {recommendations.map((rec: string, i) => <div key={i}>{rec}</div>)}
           </div>
         </>
       )}

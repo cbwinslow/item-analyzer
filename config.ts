@@ -42,6 +42,7 @@ export const config = {
       user: process.env.RABBITMQ_USER || '',
       pass: process.env.RABBITMQ_PASS || '',
     },
+    openai: process.env.OPENAI_API_KEY || '',
   },
 
   // Security
