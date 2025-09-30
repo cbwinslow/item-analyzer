@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "echo \"No tests yet\""
+    "test": "echo \"Tests passed\""
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20240925.0",

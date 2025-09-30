@@ -2,15 +2,43 @@ import { Ai } from '@cloudflare/ai';
 import Stripe from 'stripe';
 
 // Helper function for marketplace research
-async function researchItem(description, url) {
-  // Placeholder for eBay API research
-  // const ebayResponse = await fetch(`https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(description)}`, {
-  //   headers: { 'Authorization': `Bearer ${env.EBAY_TOKEN}` }
-  // });
-  // const ebayData = await ebayResponse.json();
-  // return `eBay: ${ebayData.itemSummaries?.length || 0} similar items`;
+async function researchItem(description, url, env) {
+  try {
+    // eBay API
+    const ebayResponse = await fetch(`https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(description)}&limit=10`, {
+      headers: { 'Authorization': `Bearer ${env.EBAY_TOKEN}` }
+    });
+    const ebayData = await ebayResponse.json();
+    const ebayInfo = `eBay: ${ebayData.itemSummaries?.length || 0} similar items, avg price: $${ebayData.itemSummaries?.[0]?.price?.value || 'N/A'}`;
 
-  return 'Market research: Placeholder data. Integrate eBay, Facebook, Mercari APIs for real data.';
+    // Facebook Marketplace (placeholder, use Graph API)
+    const fbInfo = 'Facebook: Integrate Graph API for marketplace data.';
+
+    // Mercari (placeholder)
+    const mercariInfo = 'Mercari: Integrate API for data.';
+
+    return `${ebayInfo}. ${fbInfo}. ${mercariInfo}`;
+  } catch (error) {
+  return 'Market research failed: ' + error.message;
+}
+
+// Helper function for sending email
+async function sendEmail(to, content, env) {
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.SENDGRID_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'noreply@itemanalyzer.com' },
+      subject: 'Your Item Analysis Report',
+      content: [{ type: 'text/plain', value: content }]
+    })
+  });
+  if (!response.ok) throw new Error('Email send failed');
+}
 }
 
 // Cloudflare Worker for Item Analyzer
@@ -36,8 +64,8 @@ export default {
         imageDescriptions.push(result.description || 'No description');
       }
 
-      // Marketplace Research (placeholder, integrate APIs)
-      const research = await researchItem(description, itemUrl);
+      // Marketplace Research
+      const research = await researchItem(description, itemUrl, env);
 
       // Generate report using AI
       const prompt = `Analyze this item: Description: ${description}, URL: ${itemUrl}, Images: ${imageDescriptions.join(', ')}, Research: ${research}. Provide a deep research report on the item, including market value, similar items, and selling tips.`;
@@ -68,9 +96,9 @@ export default {
         contentType = 'text/plain';
       }
 
-      // Send email if provided (placeholder)
+      // Send email if provided
       if (email) {
-        // Use SendGrid or similar
+        await sendEmail(email, report, env);
       }
 
       return new Response(responseBody, { headers: { 'content-type': contentType } });

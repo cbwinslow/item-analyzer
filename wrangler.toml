@@ -4,7 +4,10 @@ compatibility_date = "2024-09-30"
 
 [vars]
 STRIPE_SECRET = ""
-EBAY_APP_ID = ""
+EBAY_TOKEN = ""
+FACEBOOK_APP_ID = ""
+MERCARI_API_KEY = ""
+SENDGRID_API_KEY = ""
 # Add other API keys
 
 # For D1
