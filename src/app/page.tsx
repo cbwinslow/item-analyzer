@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { config } from '../../config';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -96,9 +97,9 @@ export default function Home() {
             <button type="button" onClick={requestNotificationPermission} className="w-full p-2 bg-green-500 text-white rounded mt-2">Enable Notifications</button>
           </form>
           {report && (
-            <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="mt-4 p-4 bg-gray-100 rounded">
+            <motion.div initial={config.featureFlags.enableAnimations ? { y: 20 } : {}} animate={config.featureFlags.enableAnimations ? { y: 0 } : {}} className="mt-4 p-4 bg-gray-100 rounded">
               <h2>Report</h2>
-              <Bar data={data} />
+              {config.featureFlags.enableCharts && <Bar data={data} />}
             </motion.div>
           )}
           <div className="mt-4">

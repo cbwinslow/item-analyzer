@@ -62,6 +62,16 @@ export const config = {
     ai: true,
     search: true,
     workflows: true,
+    auditLog: true,
+    notifications: true,
+  },
+
+  // Feature Flags
+  featureFlags: {
+    enableCharts: true,
+    enableAnimations: true,
+    enableOffline: true,
+    enableAudit: true,
   },
 
   // MCP Servers

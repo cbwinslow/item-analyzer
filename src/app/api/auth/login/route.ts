@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../../lib/supabase';
+import { AuthService } from '../../../../../lib/services/AuthService';
 
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  return NextResponse.json({ data, error });
+  const result = await AuthService.signIn(email, password);
+  return NextResponse.json(result);
 }
