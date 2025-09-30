@@ -63,4 +63,23 @@ export const config = {
     search: true,
     workflows: true,
   },
+
+  // MCP Servers
+  mcpServers: {
+    filesystem: {
+      enabled: true,
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+    },
+    git: {
+      enabled: true,
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-git', '--repository', '.'],
+    },
+    sqlite: {
+      enabled: true,
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-sqlite', '--db-path', 'data.db'],
+    },
+  },
 };
