@@ -1,5 +1,6 @@
 import { Ai } from '@cloudflare/ai';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 // Helper function for marketplace research
 async function researchItem(description, url, env) {
@@ -58,10 +59,10 @@ async function sendSMS(to, content, env) {
 }
 
 // Helper function for posting to marketplace
-async function postToMarketplace(platform, itemId, env) {
-  // Get item from DB
-  const item = await env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(itemId).first();
-  if (!item) return 'Item not found';
+async function postToMarketplace(platform, itemId, supabase) {
+  // Get item from Supabase
+  const { data: item, error } = await supabase.from('items').select('*').eq('id', itemId).single();
+  if (error || !item) return 'Item not found';
 
   if (platform === 'ebay') {
     // Placeholder for eBay posting
@@ -96,6 +97,7 @@ async function createSubscription(email, priceId, env) {
 // Cloudflare Worker for Item Analyzer
 export default {
   async fetch(request, env, ctx) {
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
     const url = new URL(request.url);
 
     if (url.pathname === '/api/analyze' && request.method === 'POST') {
@@ -105,7 +107,7 @@ export default {
       const platform = formData.get('platform');
       const itemId = formData.get('itemId');
       // Placeholder for posting
-      const result = await postToMarketplace(platform, itemId, env);
+      const result = await postToMarketplace(platform, itemId, supabase);
       return new Response(result, { headers: { 'content-type': 'text/plain' } });
     } else if (url.pathname === '/api/subscribe' && request.method === 'POST') {
       const { email, priceId } = await request.json();
@@ -148,8 +150,16 @@ export default {
       const reportResponse = await ai.run('@cf/meta/llama-3.1-8b-instruct', { prompt });
       const report = reportResponse.response || 'Report generation failed';
 
-      // Store in D1
-      await env.DB.prepare('INSERT INTO items (description, url, email, phone, image_urls, report) VALUES (?, ?, ?, ?, ?, ?)').bind(description, itemUrl, email, phone, imageUrls.join(','), report).run();
+      // Store in Supabase
+      const { error } = await supabase.from('items').insert({
+        description,
+        url: itemUrl,
+        email,
+        phone,
+        image_urls: imageUrls.join(','),
+        report
+      });
+      if (error) throw error;
 
       // Placeholder for payment: assume paid or add payment check
       // const stripe = new Stripe(env.STRIPE_SECRET);

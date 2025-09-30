@@ -17,18 +17,21 @@ A Cloudflare-based platform for analyzing items for sale, conducting marketplace
 
 - Cloudflare Workers
 - Cloudflare Pages
-- Cloudflare D1 (SQLite)
+- Supabase (PostgreSQL with auth)
 - Cloudflare AI
 - Cloudflare R2 (for images)
 - Stripe for payments
+- Docker Compose for additional services (monitoring, AI, workflows)
 
 ## Setup
 
 1. Clone the repo
 2. Install dependencies: `npm install`
-3. Configure wrangler.toml with your API keys
-4. Run locally: `npm run dev`
-5. Deploy: `npm run deploy`
+3. Set up Supabase: Create project, run schema.sql in Supabase SQL editor
+4. Configure wrangler.toml with API keys (Supabase URL/KEY, etc.)
+5. For additional services: `docker-compose up -d`
+6. Run locally: `npm run dev`
+7. Deploy: `npm run deploy`
 
 ## API Keys Required
 

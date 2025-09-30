@@ -13,11 +13,9 @@ TWILIO_TOKEN = ""
 TWILIO_FROM = ""
 # Add other API keys
 
-# For D1
-[[d1_databases]]
-binding = "DB"
-database_name = "item_analyzer_db"
-database_id = ""
+# Supabase
+SUPABASE_URL = ""
+SUPABASE_ANON_KEY = ""
 
 # For R2
 [[r2_buckets]]
