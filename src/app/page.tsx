@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { config } from '../../config';
@@ -9,6 +10,7 @@ import { config } from '../../config';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function Home() {
+  const { theme, setTheme } = useTheme();
   const [report, setReport] = useState(null);
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
@@ -106,8 +108,16 @@ export default function Home() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Item Analyzer</h1>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 max-w-md mx-auto bg-white dark:bg-gray-900 text-black dark:text-white min-h-screen">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Item Analyzer</h1>
+        <div>
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 bg-gray-200 dark:bg-gray-700 rounded mr-2">
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+          {user && <a href="/admin" className="p-2 bg-blue-500 text-white rounded">Admin</a>}
+        </div>
+      </div>
       {!user ? (
         <div className="space-y-4">
           <input id="email" type="email" placeholder="Email" className="w-full p-2 border rounded" />

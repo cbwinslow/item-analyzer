@@ -115,6 +115,18 @@ This file guides the development process. Consult before/after every action. Log
 - **Agent Name**: opencode
 - **Proof of Completion**: Integrated OpenAI for image analysis and report generation. Added Web Speech API for voice input. Implemented basic recommendations. Added image preview on upload. Enhanced UX with intelligent features.
 
+## Task 11: Add Dark Mode and Admin Dashboard
+- **Description**: Implement dark mode toggle and admin dashboard for analytics.
+- **Microgoals**:
+  - Install next-themes for dark mode.
+  - Add theme toggle in UI.
+  - Create dashboard page with audit analytics.
+  - Add API for fetching analytics data.
+- **Criteria for Completion**: App supports dark/light mode, admin can view user action analytics.
+- **Completion**: [x]
+- **Agent Name**: opencode
+- **Proof of Completion**: Installed next-themes, added ThemeProvider and toggle button. Created /admin page with charts for audit analytics. Added /api/analytics to aggregate logs. Linked admin access in main UI.
+
 ## Log of Actions
 - [Date/Time] Action: Created tasks.md file. Agent: opencode
 - [Date/Time] Action: Completed Task 1. Agent: opencode
@@ -127,3 +139,4 @@ This file guides the development process. Consult before/after every action. Log
 - [Date/Time] Action: Completed Task 8. Agent: opencode
 - [Date/Time] Action: Completed Task 9. Agent: opencode
 - [Date/Time] Action: Completed Task 10. Agent: opencode
+- [Date/Time] Action: Completed Task 11. Agent: opencode
