@@ -1,77 +1,48 @@
-name: CI
 
+name: CI/CD Pipeline
 on:
   push:
-    branches:
-      - master
+    branches: [ main, develop ]
   pull_request:
-    branches:
-      - master
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linting
-        run: npm run lint
+      - name: Generate tests
+        run: npm run generate-tests
 
-      - name: Run tests
+      - name: Run unit tests
         run: npm test
 
-      - name: Build application
-        run: npm run build
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm ci
+      - uses: actions/checkout@v3
 
       - name: Deploy to Cloudflare
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-
-  frontend-deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build frontend
-        run: cd frontend && npm run build
-
-      - name: Deploy to Vercel
-        run: cd frontend && npx vercel --prod --yes
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
