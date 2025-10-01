@@ -86,7 +86,7 @@ async function researchItem(description, url, env) {
       } catch (error) {
         return new Response('Error: ' + error.message, { status: 500 });
       }
-    } else if (url.pathname === '/api/ai' && request.method === 'POST') {
+    } else if (url.pathname === '/api/ai' && request.method === 'POST' && env.FEATURE_AI_PROXY) {
       try {
         const { provider, prompt, model = 'claude-3-haiku' } = await request.json();
         let response;
@@ -140,6 +140,21 @@ async function researchItem(description, url, env) {
       return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
         headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
+    } else if (url.pathname === '/api/recommendations' && request.method === 'GET') {
+      try {
+        const category = url.searchParams.get('category') || 'general';
+        // Mock recommendations based on category
+        const recommendations = {
+          general: ['Check similar items on eBay', 'Consider professional appraisal', 'Use high-quality photos'],
+          watches: ['Get authenticated by a jeweler', 'Check for water resistance', 'Research brand history'],
+          art: ['Verify artist provenance', 'Check for restoration work', 'Consider framing options']
+        };
+        return new Response(JSON.stringify(recommendations[category] || recommendations.general), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
     } else if (url.pathname === '/api/send-otp' && request.method === 'POST') {
       try {
         const { phone } = await request.json();

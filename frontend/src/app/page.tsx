@@ -10,6 +10,7 @@ export default function Home() {
   const [images, setImages] = useState<FileList | null>(null);
   const [report, setReport] = useState('');
   const [loading, setLoading] = useState(false);
+  const [variant] = useState(Math.random() > 0.5 ? 'A' : 'B'); // A/B test
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +45,19 @@ export default function Home() {
         <h1 className="text-2xl font-bold mb-6 text-center">Item Analyzer</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+            <label className="block text-sm font-medium mb-1">Report Format</label>
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
               className="w-full p-2 border rounded-md"
-              rows={3}
-              required
-            />
+            >
+              <option value="text">Text</option>
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="markdown">Markdown</option>
+              <option value="pdf">PDF</option>
+              <option value="html">HTML</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Item URL</label>
