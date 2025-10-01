@@ -1,16 +1,16 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Home from '../app/page';
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('Home Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the form', () => {
@@ -24,7 +24,7 @@ describe('Home Component', () => {
   });
 
   it('submits the form successfully', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as vi.Mock).mockResolvedValueOnce({
       text: () => Promise.resolve('Analysis complete')
     });
 
@@ -50,7 +50,7 @@ describe('Home Component', () => {
   });
 
   it('handles form submission error', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+    (global.fetch as vi.Mock).mockRejectedValueOnce(new Error('Network error'));
 
     render(<Home />);
     
@@ -66,7 +66,7 @@ describe('Home Component', () => {
   });
 
   it('shows loading state during submission', async () => {
-    (global.fetch as jest.Mock).mockImplementation(() => 
+    (global.fetch as vi.Mock).mockImplementation(() =>
       new Promise(resolve => setTimeout(() => resolve({ text: () => 'Done' }), 100))
     );
 

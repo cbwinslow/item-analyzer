@@ -5,10 +5,19 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "vitest",
-    "test:env": "docker-compose up -d && npm run test"
+    "test": "vitest --config vitest.config.frontend.js && vitest --config vitest.config.backend.js",
+    "test:frontend": "vitest --config vitest.config.frontend.js",
+    "test:backend": "vitest --config vitest.config.backend.js",
+    "test:env": "docker-compose up -d && npm run test",
+    "generate-tests": "node test-generator.js",
+    "test:all": "npm run test && npm run test:e2e",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.0",
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "jest-axe": "^10.0.0",
     "jsdom": "^27.0.0",
     "vitest": "^3.2.4",
     "wrangler": "^4.40.3"

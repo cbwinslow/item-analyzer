@@ -276,8 +276,7 @@ async function researchItem(description, url, env) {
 
     // Serve static files
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      const html = `<!DOCTYPE html><html><body><h1>Item Analyzer</h1><form action="/api/analyze" method="post" enctype="multipart/form-data"><input type="file" name="images" multiple><textarea name="description"></textarea><input type="url" name="url"><input type="email" name="email"><button>Submit</button></form></body></html>`;
-      return new Response(html, { headers: { 'content-type': 'text/html' } });
+      return new Response('Item Analyzer API', { headers: { 'content-type': 'text/plain' } });
     }
 
     if (request.method === 'OPTIONS') {
