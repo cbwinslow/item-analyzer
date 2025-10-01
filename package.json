@@ -34,6 +34,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
+    "pre-commit": "^1.2.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
