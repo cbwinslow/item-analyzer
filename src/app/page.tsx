@@ -16,6 +16,7 @@ export default function Home() {
   const [items, setItems] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [currentItemId, setCurrentItemId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -63,7 +64,20 @@ export default function Home() {
     });
     const data = await response.json();
     setReport(data.report);
+    // Assume item ID is returned or extract
+    setCurrentItemId('placeholder-id'); // In real, from response
     if (user) loadItems();
+  };
+
+  const postItem = async (platform: string) => {
+    if (!currentItemId) return;
+    const response = await fetch('/api/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, itemId: currentItemId, userToken: 'placeholder-token' })
+    });
+    const data = await response.json();
+    alert(data.message || data.error);
   };
 
   const requestNotificationPermission = () => {
@@ -148,9 +162,14 @@ export default function Home() {
             <button type="button" onClick={requestNotificationPermission} className="w-full p-2 bg-green-500 text-white rounded mt-2">Enable Notifications</button>
           </form>
           {report && (
-            <motion.div initial={config.featureFlags.enableAnimations ? { y: 20 } : {}} animate={config.featureFlags.enableAnimations ? { y: 0 } : {}} className="mt-4 p-4 bg-gray-100 rounded">
+            <motion.div initial={config.featureFlags.enableAnimations ? { y: 20 } : {}} animate={config.featureFlags.enableAnimations ? { y: 0 } : {}} className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded">
               <h2>Report</h2>
               {config.featureFlags.enableCharts && <Bar data={data} />}
+              <div className="mt-4">
+                <button onClick={() => postItem('ebay')} className="mr-2 p-2 bg-blue-500 text-white rounded">Post to eBay</button>
+                <button onClick={() => postItem('facebook')} className="mr-2 p-2 bg-green-500 text-white rounded">Post to Facebook</button>
+                <button onClick={() => postItem('mercari')} className="p-2 bg-purple-500 text-white rounded">Post to Mercari</button>
+              </div>
             </motion.div>
           )}
           <div className="mt-4">
