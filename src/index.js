@@ -86,7 +86,7 @@ async function researchItem(description, url, env) {
       } catch (error) {
         return new Response('Error: ' + error.message, { status: 500 });
       }
-    } else if (url.pathname === '/api/ai' && request.method === 'POST') {
+    } else if (url.pathname === '/api/ai' && request.method === 'POST' && env.FEATURE_AI_PROXY) {
       try {
         const { provider, prompt, model = 'claude-3-haiku' } = await request.json();
         let response;
@@ -140,6 +140,21 @@ async function researchItem(description, url, env) {
       return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
         headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
+    } else if (url.pathname === '/api/recommendations' && request.method === 'GET') {
+      try {
+        const category = url.searchParams.get('category') || 'general';
+        // Mock recommendations based on category
+        const recommendations = {
+          general: ['Check similar items on eBay', 'Consider professional appraisal', 'Use high-quality photos'],
+          watches: ['Get authenticated by a jeweler', 'Check for water resistance', 'Research brand history'],
+          art: ['Verify artist provenance', 'Check for restoration work', 'Consider framing options']
+        };
+        return new Response(JSON.stringify(recommendations[category] || recommendations.general), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
     } else if (url.pathname === '/api/send-otp' && request.method === 'POST') {
       try {
         const { phone } = await request.json();
@@ -261,8 +276,7 @@ async function researchItem(description, url, env) {
 
     // Serve static files
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      const html = `<!DOCTYPE html><html><body><h1>Item Analyzer</h1><form action="/api/analyze" method="post" enctype="multipart/form-data"><input type="file" name="images" multiple><textarea name="description"></textarea><input type="url" name="url"><input type="email" name="email"><button>Submit</button></form></body></html>`;
-      return new Response(html, { headers: { 'content-type': 'text/html' } });
+      return new Response('Item Analyzer API', { headers: { 'content-type': 'text/plain' } });
     }
 
     if (request.method === 'OPTIONS') {

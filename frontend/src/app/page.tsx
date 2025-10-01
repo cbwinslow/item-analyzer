@@ -8,8 +8,10 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [images, setImages] = useState<FileList | null>(null);
+  const [format, setFormat] = useState('text');
   const [report, setReport] = useState('');
   const [loading, setLoading] = useState(false);
+  const [variant] = useState(Math.random() > 0.5 ? 'A' : 'B'); // A/B test
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +46,9 @@ export default function Home() {
         <h1 className="text-2xl font-bold mb-6 text-center">Item Analyzer</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+            <label htmlFor="description" className="block text-sm font-medium mb-1">Description</label>
             <textarea
+              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full p-2 border rounded-md"
@@ -54,8 +57,25 @@ export default function Home() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Item URL</label>
+            <label htmlFor="format" className="block text-sm font-medium mb-1">Report Format</label>
+            <select
+              id="format"
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="text">Text</option>
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="markdown">Markdown</option>
+              <option value="pdf">PDF</option>
+              <option value="html">HTML</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="url" className="block text-sm font-medium mb-1">Item URL</label>
             <input
+              id="url"
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
@@ -63,8 +83,9 @@ export default function Home() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Images</label>
+            <label htmlFor="images" className="block text-sm font-medium mb-1">Images</label>
             <input
+              id="images"
               type="file"
               multiple
               accept="image/*"
@@ -73,8 +94,9 @@ export default function Home() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -82,8 +104,9 @@ export default function Home() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Phone</label>
+            <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone</label>
             <input
+              id="phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
