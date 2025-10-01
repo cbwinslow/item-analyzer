@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import { useTranslation } from 'next-i18next';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { config } from '../../config';
@@ -11,6 +12,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation('common');
   const [report, setReport] = useState(null);
   const [user, setUser] = useState(null);
   const [items, setItems] = useState([]);
@@ -135,7 +137,7 @@ export default function Home() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 max-w-md mx-auto bg-white dark:bg-gray-900 text-black dark:text-white min-h-screen">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Item Analyzer</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <div>
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 bg-gray-200 dark:bg-gray-700 rounded mr-2">
             {theme === 'dark' ? '☀️' : '🌙'}
@@ -159,7 +161,7 @@ export default function Home() {
           {imagePreviews.map((src, i) => <img key={i} src={src} alt="preview" className="w-20 h-20 object-cover m-1" />)}
         </div>
         <div className="flex">
-          <input name="description" id="description" type="text" placeholder="Description" className="flex-1 p-2 border rounded" />
+            <input name="description" id="description" type="text" placeholder={t('description')} className="flex-1 p-2 border rounded" aria-label={t('description')} />
           <button type="button" onClick={startVoiceInput} className="ml-2 p-2 bg-blue-500 text-white rounded">🎤</button>
         </div>
         <input name="url" type="url" placeholder="Item URL" className="w-full p-2 border rounded" />
@@ -169,7 +171,7 @@ export default function Home() {
               <option value="text">Text</option>
               <option value="json">JSON</option>
             </select>
-            <button type="submit" className="w-full p-2 bg-blue-500 text-white rounded">Analyze</button>
+            <button type="submit" className="w-full p-2 bg-blue-500 text-white rounded" aria-label="Analyze item">{t('analyze')}</button>
             <button type="button" onClick={requestNotificationPermission} className="w-full p-2 bg-green-500 text-white rounded mt-2">Enable Notifications</button>
           </form>
           {report && (
