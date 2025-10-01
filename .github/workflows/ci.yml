@@ -26,11 +26,27 @@ jobs:
       - name: Run linting
         run: npm run lint
 
-      - name: Run tests
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Run unit tests
         run: npm test
 
       - name: Build application
         run: npm run build
+
+      - name: Run smoke tests
+        run: |
+          # Test build artifacts
+          test -f dist/_worker.js || exit 1
+          echo "Worker build successful"
+
+      - name: Test deployment readiness
+        run: |
+          # Check for required files
+          test -f wrangler.toml || exit 1
+          test -f package.json || exit 1
+          echo "Deployment files present"
 
   deploy:
     needs: test
