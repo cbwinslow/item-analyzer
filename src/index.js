@@ -3,6 +3,63 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { Client } from '@opensearch-project/opensearch';
 
+// Encryption helpers
+async function encryptData(data, key) {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    dataBuffer
+  );
+  return { encrypted: new Uint8Array(encrypted), iv };
+}
+
+async function decryptData(encryptedData, iv, key) {
+  try {
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encryptedData
+    );
+    const decoder = new TextDecoder();
+    return decoder.decode(decrypted);
+  } catch (error) {
+    throw new Error('Decryption failed');
+  }
+}
+
+async function getEncryptionKey(env) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(env.ENCRYPTION_KEY),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: new TextEncoder().encode('salt'),
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function hashString(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Helper function for marketplace research
 async function researchItem(description, url, env) {
   const cacheKey = `research:${description}`;
@@ -26,238 +83,180 @@ async function researchItem(description, url, env) {
     const result = `${ebayInfo}. ${fbInfo}. ${mercariInfo}`;
     await env.CACHE.put(cacheKey, result, { expirationTtl: 3600 }); // Cache for 1 hour
     return result;
-  } catch (error) {
-    return 'Market research failed: ' + error.message;
-  }
-}
-
-// Helper function for sending email
-async function sendEmail(to, content, env) {
-  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${env.SENDGRID_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: 'noreply@itemanalyzer.com' },
-      subject: 'Your Item Analysis Report',
-      content: [{ type: 'text/plain', value: content }]
-    })
-  });
-  if (!response.ok) throw new Error('Email send failed');
-}
-
-// Helper function for sending SMS
-async function sendSMS(to, content, env) {
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_SID}/Messages.json`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${btoa(`${env.TWILIO_SID}:${env.TWILIO_TOKEN}`)}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      To: to,
-      From: env.TWILIO_FROM,
-      Body: content
-    })
-  });
-  if (!response.ok) throw new Error('SMS send failed');
-}
-
-// Helper function for posting to marketplace
-async function postToMarketplace(platform, itemId, supabase) {
-  // Get item from Supabase
-  const { data: item, error } = await supabase.from('items').select('*').eq('id', itemId).single();
-  if (error || !item) return 'Item not found';
-
-  if (platform === 'ebay') {
-    // Placeholder for eBay posting
-    return 'Posted to eBay: ' + item.description;
-  } else if (platform === 'facebook') {
-    // Placeholder
-    return 'Posted to Facebook Marketplace: ' + item.description;
-  } else if (platform === 'mercari') {
-    // Placeholder
-    return 'Posted to Mercari: ' + item.description;
-  }
-  return 'Unsupported platform';
-}
-
-// Helper function for creating Stripe subscription
-async function createSubscription(email, priceId, env) {
-  const stripe = new Stripe(env.STRIPE_SECRET);
-  const customer = await stripe.customers.create({ email });
-  const subscription = await stripe.subscriptions.create({
-    customer: customer.id,
-    items: [{ price: priceId }],
-    payment_behavior: 'default_incomplete',
-    expand: ['latest_invoice.payment_intent']
-  });
-  return {
-    subscriptionId: subscription.id,
-    clientSecret: subscription.latest_invoice.payment_intent.client_secret
-  };
-}
-}
-
-// Cloudflare Worker for Item Analyzer
-export default {
-  async fetch(request, env, ctx) {
-    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-    const opensearch = new Client({ node: env.OPENSEARCH_NODE });
-    const url = new URL(request.url);
-
-    if (url.pathname === '/api/analyze' && request.method === 'POST') {
-      try {
-        // Handle form submission
-        const images = formData.getAll('images');
-        const description = formData.get('description');
-        const itemUrl = formData.get('url');
-        const email = formData.get('email');
-        const phone = formData.get('phone');
-        const format = formData.get('format') || 'text';
-
-        // Upload images to R2
-        const imageUrls = [];
-        for (const image of images) {
-          const key = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${image.name.split('.').pop()}`;
-          await env.IMAGES.put(key, image);
-          imageUrls.push(`https://item-images.your-domain.com/${key}`); // Replace with actual domain
-        }
-      // Handle form submission
-      const formData = await request.formData();
-      const images = formData.getAll('images');
-      const description = formData.get('description');
-      const itemUrl = formData.get('url');
-      const email = formData.get('email');
-      const phone = formData.get('phone');
-      const format = formData.get('format') || 'text';
-
-      // Upload images to R2
-      const imageUrls = [];
-      for (const image of images) {
-        const key = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${image.name.split('.').pop()}`;
-        await env.IMAGES.put(key, image);
-        imageUrls.push(`https://item-images.your-domain.com/${key}`); // Replace with actual domain
-      }
-
-      // AI Analysis
-      const ai = new Ai(env.AI);
-      let imageDescriptions = [];
-      for (const image of images) {
-        const imageBuffer = await image.arrayBuffer();
-        const result = await ai.run('@cf/microsoft/resnet-50', { image: [...new Uint8Array(imageBuffer)] });
-        imageDescriptions.push(result.description || 'No description');
-      }
-
-      // Marketplace Research
-      const research = await researchItem(description, itemUrl, env);
-
-      // Generate report using AI
-      const prompt = `Analyze this item: Description: ${description}, URL: ${itemUrl}, Images: ${imageDescriptions.join(', ')}, Research: ${research}. Provide a deep research report on the item, including market value, similar items, and selling tips.`;
-      const reportResponse = await ai.run('@cf/meta/llama-3.1-8b-instruct', { prompt });
-      const report = reportResponse.response || 'Report generation failed';
-
-      // Store in Supabase
-      const { data, error } = await supabase.from('items').insert({
-        description,
-        url: itemUrl,
-        email,
-        phone,
-        image_urls: imageUrls.join(','),
-        report
-      }).select().single();
-      if (error) throw error;
-
-      // Index in OpenSearch
-      await opensearch.index({
-        index: 'items',
-        id: data.id.toString(),
-        body: {
-          description,
-          url: itemUrl,
-          report
-        }
-      });
-
-      // Placeholder for payment: assume paid or add payment check
-      // const stripe = new Stripe(env.STRIPE_SECRET);
-      // const paymentIntent = await stripe.paymentIntents.create({ amount: 500, currency: 'usd' }); // $5
-
-      // Format response
-      let responseBody;
-      let contentType;
-      if (format === 'json') {
-        responseBody = JSON.stringify({ description, itemUrl, imageDescriptions, research, report });
-        contentType = 'application/json';
-      } else if (format === 'csv') {
-        responseBody = `Description,URL,Images,Research,Report\n"${description}","${itemUrl}","${imageDescriptions.join('; ')}","${research}","${report}"`;
-        contentType = 'text/csv';
-      } else if (format === 'markdown') {
-        responseBody = `# Item Analysis\n\n**Description:** ${description}\n\n**URL:** ${itemUrl}\n\n**Images:** ${imageDescriptions.join(', ')}\n\n**Research:** ${research}\n\n**Report:** ${report}`;
-        contentType = 'text/markdown';
-      } else {
-        responseBody = report;
-        contentType = 'text/plain';
-      }
-
-      // Send email if provided
-      if (email) {
-        await sendEmail(email, report, env);
-      }
-
-      // Send SMS if provided
-      if (phone) {
-        await sendSMS(phone, report.substring(0, 160), env); // Truncate for SMS
-      }
-
-      // Trigger N8N workflow
-      if (env.N8N_WEBHOOK_URL) {
-        await fetch(env.N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ description, itemUrl, report })
-        });
-      }
-
-      // Send to RabbitMQ queue
-      if (env.RABBITMQ_URL) {
-        const auth = btoa(`${env.RABBITMQ_USER}:${env.RABBITMQ_PASS}`);
-        await fetch(`${env.RABBITMQ_URL}/api/exchanges/%2f/amq.default/publish`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            properties: {},
-            routing_key: 'item_analysis',
-            payload: JSON.stringify({ id: data.id, report }),
-            payload_encoding: 'string'
-          })
-        });
-      }
-
-      console.log('Analysis completed for item:', description);
-
-      return new Response(responseBody, {
-        headers: {
-          'content-type': contentType,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        }
-      });
       } catch (error) {
-        console.error('Error in analyze:', error);
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
+    } else if (url.pathname === '/api/ai' && request.method === 'POST') {
+      try {
+        const { provider, prompt, model = 'claude-3-haiku' } = await request.json();
+        let response;
+        if (provider === 'openrouter') {
+          response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: model || 'anthropic/claude-3-haiku',
+              messages: [{ role: 'user', content: prompt }]
+            })
+          });
+        } else if (provider === 'ollama') {
+          response = await fetch(`${env.OLLAMA_URL || 'http://localhost:11434'}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: model || 'llama2', prompt })
+          });
+        } else if (provider === 'localai') {
+          response = await fetch(`${env.LOCALAI_URL || 'http://localhost:8080'}/v1/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: model || 'gpt-3.5-turbo', prompt })
+          });
+        } else if (provider === 'n8n') {
+          response = await fetch(env.N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, provider: 'ai' })
+          });
+        } else if (provider === 'openwebui') {
+          response = await fetch(`${env.OPENWEBUI_URL || 'http://localhost:3000'}/api/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+          });
+        } else {
+          throw new Error('Unsupported provider');
+        }
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
         return new Response('Error: ' + error.message, { status: 500 });
       }
     } else if (url.pathname === '/api/health' && request.method === 'GET') {
       return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
         headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
+    } else if (url.pathname === '/api/send-otp' && request.method === 'POST') {
+      try {
+        const { phone } = await request.json();
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+        await env.CACHE.put(`otp:${phone}`, otp, { expirationTtl: 300 }); // 5 min
+        await sendSMS(phone, `Your OTP is: ${otp}`, env);
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
+    } else if (url.pathname === '/api/verify-otp' && request.method === 'POST') {
+      try {
+        const { phone, otp } = await request.json();
+        const storedOtp = await env.CACHE.get(`otp:${phone}`);
+        if (storedOtp === otp) {
+          await env.CACHE.delete(`otp:${phone}`);
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        } else {
+          return new Response(JSON.stringify({ success: false, message: 'Invalid OTP' }), {
+            status: 400,
+            headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        }
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
+    } else if (url.pathname === '/api/subscribe' && request.method === 'POST') {
+      try {
+        const { email, tier } = await request.json();
+        const priceIds = {
+          free: null,
+          basic: env.STRIPE_BASIC_PRICE_ID,
+          premium: env.STRIPE_PREMIUM_PRICE_ID
+        };
+        const priceId = priceIds[tier];
+        if (!priceId && tier !== 'free') throw new Error('Invalid tier');
+        if (tier === 'free') {
+          return new Response(JSON.stringify({ success: true, tier: 'free' }), {
+            headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        }
+        const result = await createSubscription(email, priceId, env);
+        return new Response(JSON.stringify(result), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
+    } else if (url.pathname.startsWith('/api/affiliate-earnings') && request.method === 'GET') {
+      try {
+        const affiliateCode = url.searchParams.get('code');
+        if (!affiliateCode) throw new Error('Affiliate code required');
+        const { data, error } = await supabase.from('items').select('id').eq('affiliate_code', affiliateCode);
+        if (error) throw error;
+        const earnings = data.length * 0.5; // $0.50 per referral
+        return new Response(JSON.stringify({ affiliateCode, referrals: data.length, earnings }), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
+    } else if (url.pathname === '/api/item' && request.method === 'GET') {
+      try {
+        const shareCode = url.searchParams.get('share_code');
+        if (!shareCode) throw new Error('Share code required');
+        const { data, error } = await supabase.from('items').select('*').eq('share_code', shareCode).single();
+        if (error || !data) throw new Error('Item not found');
+        // Decrypt sensitive data
+        let email = null;
+        let phone = null;
+        if (data.email) {
+          const emailData = JSON.parse(data.email);
+          email = await decryptData(new Uint8Array(emailData.encrypted), new Uint8Array(emailData.iv), encryptionKey);
+        }
+        if (data.phone) {
+          const phoneData = JSON.parse(data.phone);
+          phone = await decryptData(new Uint8Array(phoneData.encrypted), new Uint8Array(phoneData.iv), encryptionKey);
+        }
+        // For AR visualization, add placeholder
+        const arData = { model: 'placeholder.glb', position: [0, 0, 0] };
+        // For blockchain authenticity, add hash
+        const reportHash = await hashString(data.report);
+        const blockchainProof = `Hash: ${reportHash}, stored on blockchain (placeholder)`;
+        return new Response(JSON.stringify({
+          description: data.description,
+          url: data.url,
+          email,
+          phone,
+          image_urls: data.image_urls,
+          report: data.report,
+          ar_visualization: arData,
+          blockchain_authenticity: blockchainProof
+        }), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
+    } else if (url.pathname === '/api/feedback' && request.method === 'POST') {
+      try {
+        const { itemId, rating, comment } = await request.json();
+        const { error } = await supabase.from('feedback').insert({
+          item_id: itemId,
+          rating,
+          comment
+        });
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (error) {
+        return new Response('Error: ' + error.message, { status: 500 });
+      }
     }
 
     // Serve static files

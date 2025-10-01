@@ -1,83 +1,108 @@
 # Item Analyzer Platform
 
-A Cloudflare-based platform for analyzing items for sale, conducting marketplace research, and generating detailed reports.
+A comprehensive AI-powered platform for analyzing items, providing market insights, authentication, and collaborative features.
 
 ## Features
 
-- Upload images, descriptions, URLs for items
-- AI-powered image recognition and analysis
-- Marketplace research on eBay, Facebook Marketplace, Mercari
-- Automated posting to marketplaces
-- Multiple report formats: Text, JSON, CSV, Markdown
-- Email and SMS delivery
-- Payment processing with Stripe
-- Secure with Cloudflare WAF and Access
+- AI-powered item analysis with multiple models
+- Market research integration (eBay, Facebook Marketplace, Mercari)
+- User authentication with 2FA
+- Subscription tiers (Free, Basic, Premium)
+- Affiliate program
+- Collaborative sharing and feedback
+- Mobile PWA support
+- Real-time analytics and audit logging
 
-## Tech Stack
+## Quick Start
 
-- Cloudflare Workers
-- Cloudflare Pages
-- Supabase (PostgreSQL with auth)
-- Cloudflare AI
-- Cloudflare R2 (for images)
-- Stripe for payments
-- Docker Compose for additional services (monitoring, AI, workflows)
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Cloudflare account
+- Supabase account
+- Stripe account (for payments)
 
-## Setup
+### Installation
 
-1. Clone the repo
-2. Install dependencies: `npm install`
-3. Set up Supabase: Create project, run schema.sql in Supabase SQL editor
-4. Configure wrangler.toml with API keys (Supabase URL/KEY, etc.)
-5. For additional services: `docker-compose up -d`
-6. Run locally: `npm run dev`
-7. Deploy: `npm run deploy`
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/item-analyzer.git
+cd item-analyzer
+```
 
-## Test Environment
+2. Install dependencies:
+```bash
+npm install
+cd frontend && npm install
+```
 
-- Run tests: `npm test`
-- For full test env: `docker-compose -f docker-compose.test.yml up -d` (if created)
-- Local AI: Access LocalAI at http://localhost:8080
-- N8N workflows: http://localhost:5678
-- Monitoring: Prometheus http://localhost:9090, Grafana http://localhost:3000
+3. Set up environment variables (see .env.example)
 
-## Integrations
+4. Deploy backend to Cloudflare:
+```bash
+npm run deploy
+```
 
-- N8N: Triggers workflow after analysis
-- Supabase Auth: Signup/Login APIs
-- OpenWebUI: For AI chat interface
-- Ollama: Local LLM
-- RabbitMQ: For message queuing
-- OpenSearch: For indexing and search
+5. Deploy frontend:
+```bash
+cd frontend
+npm run build
+npm run start
+```
+
+## API Documentation
+
+### Core Endpoints
+
+- `POST /api/analyze` - Analyze an item
+- `POST /api/subscribe` - Create subscription
+- `GET /api/item?share_code=xxx` - Get shared item
+- `POST /api/feedback` - Submit feedback
+- `POST /api/ai` - Use AI proxy
+
+See [API Docs](./api-docs.md) for full specifications.
 
 ## Deployment
 
-1. Set up Cloudflare account and install Wrangler.
-2. Create Supabase project and run schema.sql.
-3. Set up R2 bucket, KV namespace, D1 database via Wrangler.
-4. Configure API keys in wrangler.toml.
-5. For additional services: `docker-compose up -d`
-6. Deploy: `wrangler deploy`
-7. Access at your Cloudflare domain.
+### Cloudflare Worker
+```bash
+wrangler deploy
+```
 
-## Health Check
+### Frontend
+```bash
+cd frontend
+npm run build
+npm run export
+# Deploy to Vercel, Netlify, or Cloudflare Pages
+```
 
-GET /api/health
+## Development
 
-## API Keys Required
+### Running Locally
+```bash
+# Backend
+npm run dev
 
-- CLOUDFLARE_API_TOKEN
-- STRIPE_SECRET
-- EBAY_APP_ID
-- FACEBOOK_APP_ID
-- MERCARI_API_KEY
+# Frontend
+cd frontend
+npm run dev
+```
 
-## Compliance
+### Testing
+```bash
+npm test
+cd frontend && npm test
+```
 
-Adheres to GDPR, CCPA for data protection. User data is encrypted, stored securely in Cloudflare D1/R2. No data shared without consent. Users can request data deletion.
+## Contributing
 
-## Development Notes
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
-- Use AI Gateway for model routing
-- Observability enabled for logging
-- Rate limiting via Cloudflare
+## Security
+
+See [SECURITY.md](./SECURITY.md) for procedures.
+
+## License
+
+MIT License
