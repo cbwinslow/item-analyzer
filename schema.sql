@@ -16,3 +16,12 @@ CREATE TABLE audit_logs (
   details TEXT,
   timestamp TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE feedback (
+  id SERIAL PRIMARY KEY,
+  item_id INTEGER REFERENCES items(id),
+  user_email TEXT,
+  rating INTEGER,
+  comments TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);

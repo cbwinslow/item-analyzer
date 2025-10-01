@@ -17,6 +17,7 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [currentItemId, setCurrentItemId] = useState(null);
+  const [rating, setRating] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -78,6 +79,16 @@ export default function Home() {
     });
     const data = await response.json();
     alert(data.message || data.error);
+  };
+
+  const submitFeedback = async () => {
+    if (!currentItemId || !user) return;
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId: currentItemId, rating, comments: '', userEmail: user.email })
+    });
+    alert('Feedback submitted');
   };
 
   const requestNotificationPermission = () => {
@@ -165,6 +176,13 @@ export default function Home() {
             <motion.div initial={config.featureFlags.enableAnimations ? { y: 20 } : {}} animate={config.featureFlags.enableAnimations ? { y: 0 } : {}} className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded">
               <h2>Report</h2>
               {config.featureFlags.enableCharts && <Bar data={data} />}
+              <div className="mt-4">
+                <h3>Rate this report:</h3>
+                {[1,2,3,4,5].map(star => (
+                  <button key={star} onClick={() => setRating(star)} className={`mr-1 ${rating >= star ? 'text-yellow-500' : 'text-gray-300'}`}>★</button>
+                ))}
+                <button onClick={submitFeedback} className="ml-4 p-2 bg-orange-500 text-white rounded">Submit Feedback</button>
+              </div>
               <div className="mt-4">
                 <button onClick={() => postItem('ebay')} className="mr-2 p-2 bg-blue-500 text-white rounded">Post to eBay</button>
                 <button onClick={() => postItem('facebook')} className="mr-2 p-2 bg-green-500 text-white rounded">Post to Facebook</button>
