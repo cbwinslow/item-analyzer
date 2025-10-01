@@ -7,6 +7,7 @@ import { useTranslation } from 'next-i18next';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { config } from '../../config';
+import { MLService } from '../../lib/services/MLService';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -120,8 +121,10 @@ export default function Home() {
   };
 
   const loadRecommendations = async () => {
-    // Placeholder: fetch from audit logs
-    const recs = ['Similar item 1', 'Similar item 2'];
+    // Use ML to predict preferences
+    const actions = items.length; // Placeholder for user actions
+    const preference = await MLService.predictPreference([actions]);
+    const recs = [`Recommended: ${preference} items`, 'Similar item 2'];
     setRecommendations(recs);
   };
 
